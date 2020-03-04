@@ -1,4 +1,5 @@
-const { GraphQLObjectType, GraphQLInt, GraphQLString, GraphQLBoolean} = require('graphql');
+const { GraphQLObjectType, GraphQLInt, GraphQLString, GraphQLBoolean, GraphQLList, GraphQLSchema} = require('graphql');
+const axios = require('axios');
 // Launch Type
 const LaunchType = new GraphQLObjectType({
     name: "Launch",
@@ -20,4 +21,50 @@ const RocketType = new GraphQLObjectType({
         rocket_name: {type: GraphQLString},
         rocket_type: {type: GraphQLString}
     })
+})
+
+const RootQuery = new GraphQLObjectType({
+    name: 'RootQueryType',
+    fields: {
+        launches: {
+            type: new GraphQLList(LaunchType),
+            resolve(parent, args){
+                return axios.get('https://api.spacexdata.com/v3/launches/').then((resp) => {
+                    return resp.data
+                })
+            }
+        },
+        launch: {
+            type: LaunchType,
+            args: {
+                flight_number: {
+                    type: GraphQLInt
+                }
+            },
+            resolve(parent, args){
+                return axios.get(`https://api.spacexdata.com/v3/launches/${args.flight_number}`).then(res => res.data)
+            }
+        },
+        rockets: {
+            type: new GraphQLList(RocketType),
+            resolve(parent, args) {
+                return axios.get('https://api.spacexdata.com/v3/rockets/').then((resp) => {
+                    return resp.data
+                })
+            }
+        },
+        rocket: {
+            type: RocketType,
+            args: {
+                id: {type: GraphQLInt}
+            },
+            resolve(parent, args) {
+                return axios.get(`https://api.spacexdata.com/v3/rockets/${args.id}`).then(res => res.data)
+            }
+        },
+    }
+})
+
+module.exports = new GraphQLSchema({
+    query: RootQuery
 })
